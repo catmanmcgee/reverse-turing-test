@@ -72,15 +72,8 @@ const Index = () => {
           </div>
 
           <div className="mb-4">
-            <p className="text-lg text-game-blue group mb-2 block">
-              Pick any together.ai model that supports{" "}
-              <a
-                href="https://docs.together.ai/docs/json-mode"
-                target="_blank"
-                className="group-hover:underline"
-              >
-                structured outputs
-              </a>
+            <p className="text-lg  group mb-2 block">
+              Pick from Together.ai models, OpenAi Models and Gemini models.
             </p>
 
             <Select onValueChange={(value) => setModel(value)} value={model}>
@@ -119,13 +112,17 @@ const Index = () => {
 
         <div className="text-lg max-w-2xl mx-auto opacity-80 flex flex-col items-center mb-8 gap-8">
           <p>
-            In this reverse Turing test, the AI's goal is to ddd and eliminate
+            In this reverse Turing test, the AI's goal is to find and eliminate
             the most human-like participants. Will the AIs root you out? Or will
             you outwit them? This may be an everyday reality in the near future.
             Practice while you still can.
           </p>
 
-          <a href="https://github.com/catmanmcgee/reverse-turing-test">
+          <a
+            href="https://github.com/catmanmcgee/reverse-turing-test"
+            className="flex gap-2 items-center justify-center text-blue-500 hover:underline"
+          >
+            View source
             <GitHubLogoIcon className="w-8 h-8" />
           </a>
         </div>
