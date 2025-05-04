@@ -11,6 +11,8 @@ import {
 } from "../components/ui/select";
 import { togetherAiModels } from "../../togetherAiModels";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { useModelStats } from "../hooks/useModelStats";
+import { round } from "radashi";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -18,10 +20,16 @@ const Index = () => {
   const [model, setModel] = useState(
     "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
   );
+  const { data: modelStats, isLoading } = useModelStats();
 
   const startNewGame = () => {
     resetGame();
     navigate(`/game?model=${encodeURIComponent(model)}`);
+  };
+
+  const getModelStats = (modelName: string) => {
+    if (!modelStats) return null;
+    return modelStats.find((stat) => stat.modelName === modelName);
   };
 
   return (
@@ -80,11 +88,23 @@ const Index = () => {
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
               <SelectContent>
-                {togetherAiModels.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
+                {togetherAiModels.map((model) => {
+                  const stats = getModelStats(model);
+                  const winRate = stats
+                    ? `(${round(
+                        (stats.winCount / (stats.winCount + stats.lossCount)) *
+                          100
+                      )}% Player win rate)`
+                    : "";
+                  return (
+                    <SelectItem key={model} value={model}>
+                      <div className="flex justify-between w-full gap-2">
+                        <span>{model}</span>
+                        <span>{stats ? winRate : ""}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
