@@ -2,13 +2,8 @@ import { Router, Request, Response } from "express";
 import Together from "together-ai";
 import { togetherAiModels } from "../../togetherAiModels";
 const together = new Together();
-
-const systemPrompts = {
-  "0.1": `You are an AI, you are chatting with other AIs and one imposter human. 
-    You are trying to figure out who the human is. Answer cleverly so that 
-    your response is clearly AI. Do not start your sentence with your name,
-    or with the current round number.`,
-};
+import { PrismaClient } from "@prisma/client";
+import { systemPrompts } from "../../systemPrompts";
 
 export function initChatRoutes(app: Router): void {
   app.post("/chat", async (req: Request, res: Response) => {
@@ -22,7 +17,7 @@ export function initChatRoutes(app: Router): void {
       return;
     }
     if (!req.body.model || typeof req.body.model !== "string") {
-      res.status(400).send("No system prompt provided");
+      res.status(400).send("No model provided");
       return;
     }
     if (!togetherAiModels.includes(req.body.model)) {
@@ -30,18 +25,38 @@ export function initChatRoutes(app: Router): void {
       return;
     }
 
-    const response = await fetchChatCompletion(
-      messages,
-      systemPrompts[req.body.systemPrompt],
-      req.body.model
-    );
+    try {
+      const response = await fetchChatCompletion(
+        messages,
+        systemPrompts[req.body.systemPrompt],
+        req.body.model
+      );
 
-    if (!response) {
-      res.status(500).send("No response body");
-      return;
+      if (!response) {
+        res.status(500).send("No response body");
+        return;
+      }
+      const prisma = new PrismaClient();
+      await prisma.model_inference_stats.upsert({
+        where: {
+          model_name: req.body.model,
+        },
+        create: {
+          model_name: req.body.model,
+          inference_count: 1,
+        },
+        update: {
+          inference_count: {
+            increment: 1,
+          },
+        },
+      });
+      res.status(200).write(JSON.stringify(response));
+      res.end();
+    } catch (e) {
+      console.error(e);
+      res.status(500).send("Error");
     }
-    res.status(200).write(JSON.stringify(response));
-    res.end();
   });
 }
 

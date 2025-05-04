@@ -1,0 +1,29 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "cockroachdb"
+  url      = env("DATABASE_URL")
+}
+
+model model_inference_stats {
+  id              String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  model_name      String? @unique @db.String(256)
+  inference_count BigInt?
+}
+
+model model_winrate_stats {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  model_name String? @unique @db.String(256)
+  win_count  BigInt?
+  loss_count BigInt?
+}
+
+model recorded_game {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  model_name String?  @db.String(256)
+  history    String?  @db.String(100000)
+  is_win     Boolean?
+}

@@ -19,6 +19,7 @@ export type Message = {
 export type Vote = {
   from: string;
   vote: string;
+  isForPlayer: boolean;
   suspicousLevels: Record<string, number>;
 };
 

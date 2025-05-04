@@ -9,6 +9,7 @@ import { initParticipants, mockPrompts } from "@/client/data/mockData";
 import { shuffle } from "radashi";
 import { immer } from "zustand/middleware/immer";
 import { fetchWithRetry } from "./Fetch";
+import { formatRoundMessages, generateId, getModelName } from "./Util";
 
 const defaultGameState: GameState = {
   gameId: "",
@@ -21,8 +22,6 @@ const defaultGameState: GameState = {
 };
 
 const defaultRounds: Round[] = [];
-
-const generateId = () => Math.random().toString(36).substring(2, 9);
 
 interface GameStore {
   gameState: GameState;
@@ -67,15 +66,8 @@ export const useGameStore = create<GameStore>()(
     aiResponse: async (participant: Participant) => {
       const { gameState, rounds } = useGameStore.getState();
 
-      const textContext = rounds
-        .map((round) => {
-          const condensedMessages = round.messages
-            .map((message) => `${message.senderId}: ${message.content}`)
-            .join("\n");
-          return `Round ${round.number}: ${round.prompt}
-        ${condensedMessages}
-        Now it's ${participant.name}'s turn to respond.`; // This is very important or the AI will impersonate the player and other participants.
-        })
+      const textContext = formatRoundMessages(rounds)
+        .concat([`Now it's ${participant.name}'s turn to respond.`])
         .join("\n\n");
 
       const body = await fetchWithRetry("/api/chat", {
@@ -83,9 +75,7 @@ export const useGameStore = create<GameStore>()(
         body: JSON.stringify({
           messages: [textContext],
           systemPrompt: "0.1",
-          model:
-            new URLSearchParams(window.location.search).get("model") ||
-            "mistralai/Mistral-7B-Instruct-v0.3",
+          model: getModelName(),
         }),
       });
 
@@ -129,6 +119,7 @@ export const useGameStore = create<GameStore>()(
         state.rounds[currentRound].votes.push({
           from,
           vote: votedPlayer,
+          isForPlayer: votedPlayer === state.gameState.playerName,
           suspicousLevels,
         });
       });
@@ -194,12 +185,29 @@ export const useGameStore = create<GameStore>()(
           (p) => p.type === "player" && !p.isEliminated
         ).length;
 
-        if (remainingPlayers === 0) {
-          state.gameState.status = "results";
-          state.gameState.winner = "ai";
-        } else if (remainingAIs === 0) {
-          state.gameState.status = "results";
-          state.gameState.winner = "human";
+        const isGameOver = remainingPlayers === 0 || remainingAIs === 0;
+
+        if (isGameOver) {
+          fetchWithRetry("/api/recordGame", {
+            method: "POST",
+            body: JSON.stringify({
+              messages: formatRoundMessages(state.rounds).concat(
+                JSON.stringify(state.rounds.map((a) => a.votes))
+              ),
+              systemPrompt: "0.1",
+              model: getModelName(),
+              isWin: remainingPlayers > 0,
+            }),
+          });
+
+          if (remainingPlayers === 0) {
+            state.gameState.status = "results";
+            state.gameState.winner = "ai";
+            // Record the game
+          } else if (remainingAIs === 0) {
+            state.gameState.status = "results";
+            state.gameState.winner = "human";
+          }
         } else {
           state.gameState.status = "active";
           state.gameState.winner = null;
@@ -303,16 +311,13 @@ export const useGameStore = create<GameStore>()(
           .getState()
           .gameState.participants.filter((a) => a.type === "ai")
           .map(async (participant) => {
-            const textContext = useGameStore
-              .getState()
-              .rounds.map((round) => {
-                const condensedMessages = round.messages
-                  .map((message) => `${message.senderId}: ${message.content}`)
-                  .join("\n");
-                return `Round ${round.number}: ${round.prompt}
-    ${condensedMessages}
-    Now it's ${participant.name}'s turn to vote for who they think is the human.`;
-              })
+            const textContext = formatRoundMessages(
+              useGameStore.getState().rounds
+            )
+              .map(
+                (roundText) => `${roundText}
+    Now it's ${participant.name}'s turn to vote for who they think is the human.`
+              )
               .join("\n\n");
 
             set((state) => {
@@ -325,9 +330,7 @@ export const useGameStore = create<GameStore>()(
               body: JSON.stringify({
                 messages: [textContext],
                 systemPrompt: "0.1",
-                model:
-                  new URLSearchParams(window.location.search).get("model") ||
-                  "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+                model: getModelName(),
                 liveParticipants: useGameStore
                   .getState()
                   .gameState.participants.filter(

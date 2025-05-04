@@ -38,7 +38,7 @@ const ChatInput = () => {
           }
           value={message}
           onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
-            if (e.key === "Enter" && (e.altKey || e.ctrlKey)) {
+            if (e.key === "Enter" && (e.altKey || e.ctrlKey || e.metaKey)) {
               handleSendMessage(e);
             }
           }}
@@ -51,7 +51,7 @@ const ChatInput = () => {
           disabled={!isActive || !message.trim()}
           className="bg-game-purple hover:bg-game-purple/80 text-white"
         >
-          Send
+          Send (ctrl/alt/meta + enter)
         </Button>
       </form>
     </>
