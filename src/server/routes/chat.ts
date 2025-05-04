@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
-import Together from "together-ai";
-import { togetherAiModels } from "../../togetherAiModels";
-const together = new Together();
+import { allModels } from "../../allModels";
 import { PrismaClient } from "@prisma/client";
 import { systemPrompts } from "../../systemPrompts";
+import { AiProvider, formatMessages } from "../utils/aiCompletions";
+
+const aiProvider = new AiProvider();
 
 export function initChatRoutes(app: Router): void {
   app.post("/chat", async (req: Request, res: Response) => {
@@ -20,22 +21,31 @@ export function initChatRoutes(app: Router): void {
       res.status(400).send("No model provided");
       return;
     }
-    if (!togetherAiModels.includes(req.body.model)) {
+    if (!allModels.includes(req.body.model)) {
       res.status(400).send("Invalid model provided");
       return;
     }
 
     try {
-      const response = await fetchChatCompletion(
-        messages,
+      const formattedMessages = formatMessages(
         systemPrompts[req.body.systemPrompt],
-        req.body.model
+        messages
+      );
+
+      const response = await aiProvider.createChatCompletion(
+        formattedMessages,
+        {
+          model: req.body.model,
+          stream: false,
+          maxTokens: 1000,
+        }
       );
 
       if (!response) {
         res.status(500).send("No response body");
         return;
       }
+
       const prisma = new PrismaClient();
       await prisma.model_inference_stats.upsert({
         where: {
@@ -51,6 +61,7 @@ export function initChatRoutes(app: Router): void {
           },
         },
       });
+
       res.status(200).write(JSON.stringify(response));
       res.end();
     } catch (e) {

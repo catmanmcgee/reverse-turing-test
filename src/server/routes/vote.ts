@@ -1,8 +1,8 @@
 import { Router, Request, Response } from "express";
-import Together from "together-ai";
-import { togetherAiModels } from "../../togetherAiModels";
+import { allModels } from "../../allModels";
+import { AiProvider, formatMessages } from "../utils/aiCompletions";
 
-const together = new Together();
+const aiProvider = new AiProvider();
 
 const systemPrompts = {
   "0.1": `You are an AI, you are chatting with other AIs and one imposter human. 
@@ -29,24 +29,29 @@ export function initVoteRoutes(app: Router): void {
       res.status(400).send("No system prompt provided");
       return;
     }
-    if (!togetherAiModels.includes(req.body.model)) {
+    if (!allModels.includes(req.body.model)) {
       res.status(400).send("Invalid model provided");
       return;
     }
 
-    const response = await fetchVoteCompletion(
-      messages,
-      systemPrompts[req.body.systemPrompt],
-      req.body.liveParticipants,
-      req.body.model
-    );
+    try {
+      const response = await fetchVoteCompletion(
+        messages,
+        systemPrompts[req.body.systemPrompt],
+        req.body.liveParticipants,
+        req.body.model
+      );
 
-    if (!response) {
-      res.status(500).send("No response body");
-      return;
+      if (!response) {
+        res.status(500).send("No response body");
+        return;
+      }
+      res.status(200).json(response);
+      res.end();
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error");
     }
-    res.status(200).write(JSON.stringify(response));
-    res.end();
   });
 }
 
@@ -56,18 +61,13 @@ const fetchVoteCompletion = async (
   liveParticipants: string[],
   model: string
 ) => {
-  const messages = [{ role: "system", content: systemPrompt }].concat(
-    userMessages.map((message) => ({
-      role: "user",
-      content: message,
-    }))
-  );
-  return together.chat.completions.create({
+  const messages = formatMessages(systemPrompt, userMessages);
+  return aiProvider.createChatCompletion(messages, {
     model,
-    messages: messages as any,
     stream: false,
+    maxTokens: 1000,
+    temperature: 0.7,
     response_format: getVoteSchema(liveParticipants),
-    max_tokens: 1000,
   });
 };
 
@@ -88,7 +88,7 @@ function getVoteSchema(liveParticipants: string[]) {
     type: "json_schema",
     json_schema: {
       name: "who_is_suspected_human",
-      strict: "true",
+      strict: true,
       schema: {
         type: "object",
         properties: {
@@ -99,6 +99,7 @@ function getVoteSchema(liveParticipants: string[]) {
           },
           ...suspicionProperties,
         },
+        additionalProperties: false,
         required: ["suspected_human_name", ...Object.keys(suspicionProperties)],
       },
     },

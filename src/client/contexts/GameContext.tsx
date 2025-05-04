@@ -161,10 +161,6 @@ export const useGameStore = create<GameStore>()(
           )
         );
         voteCounts.sort((a, b) => b[1] - a[1]);
-        if (voteCounts.length > 1 && voteCounts[0][1] === voteCounts[1][1]) {
-          alert("tie vote");
-          return;
-        }
 
         const eliminatedId = voteCounts[0][0];
         const eliminatedParticipant = state.gameState.participants.find(
