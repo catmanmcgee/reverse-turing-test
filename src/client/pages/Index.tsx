@@ -98,7 +98,7 @@ const Index = () => {
                     : "";
                   return (
                     <SelectItem key={model} value={model}>
-                      <div className="flex justify-between w-full gap-2">
+                      <div className="flex justify-between w-full gap-2 py-2">
                         <span>{model}</span>
                         <span>{stats ? winRate : ""}</span>
                       </div>

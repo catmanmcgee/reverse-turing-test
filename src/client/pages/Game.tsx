@@ -48,7 +48,7 @@ const Game = () => {
   return (
     <div className="min-h-screen bg-game-bg p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-6 md:flex-row flex-col">
           <Button
             variant="ghost"
             className="text-game-text hover:bg-game-card"
@@ -64,6 +64,10 @@ const Game = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Sidebar */}
+          <div>
+            <ParticipantList />
+          </div>
           <div className="lg:col-span-2">
             {/* Game state components */}
             {gameState.status === "results" ? (
@@ -83,11 +87,6 @@ const Game = () => {
                 ))}
               </div>
             )}
-
-            {/* Sidebar */}
-            <div>
-              <ParticipantList />
-            </div>
 
             {/* Chat container */}
             <div className="bg-game-card rounded-lg p-4">
