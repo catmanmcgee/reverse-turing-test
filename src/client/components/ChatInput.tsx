@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/client/components/ui/button";
-import { Input } from "@/client/components/ui/input";
-import { useGame } from "@/client/contexts/GameContext";
+import { Textarea } from "@/client/components/ui/textarea";
+import { useGameStore } from "@/client/contexts/GameContext";
 
 const ChatInput = () => {
   const [message, setMessage] = useState("");
-  const { gameState, sendMessage } = useGame();
+  const gameState = useGameStore((state) => state.gameState);
+  const sendMessage = useGameStore((state) => state.sendPlayerMessage);
 
-  const isActive = gameState.status === "active";
+  const isActive = gameState.status === "player-turn";
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,27 +17,44 @@ const ChatInput = () => {
       setMessage("");
     }
   };
-
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (isActive && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [inputRef, isActive]);
   return (
-    <form onSubmit={handleSendMessage} className="mt-4 flex gap-2">
-      <Input
-        type="text"
-        placeholder={
-          isActive ? "Type your message..." : "Waiting for next round..."
-        }
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        disabled={!isActive}
-        className="bg-game-card border-game-purple/30 text-game-text"
-      />
-      <Button
-        type="submit"
-        disabled={!isActive || !message.trim()}
-        className="bg-game-purple hover:bg-game-purple/80 text-white"
-      >
-        Send
-      </Button>
-    </form>
+    <>
+      {isActive && (
+        <div className="text-sm text-game-text font-bold bg-game-purple/10 p-2 rounded-md">
+          It is your turn!
+        </div>
+      )}
+      <form onSubmit={handleSendMessage} className="mt-4 flex gap-2 flex-col">
+        <Textarea
+          ref={inputRef}
+          placeholder={
+            isActive ? "Type your message..." : "Waiting for your turn..."
+          }
+          value={message}
+          onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
+            if (e.key === "Enter" && (e.altKey || e.ctrlKey)) {
+              handleSendMessage(e);
+            }
+          }}
+          onChange={(e) => setMessage(e.target.value)}
+          disabled={!isActive}
+          className="bg-game-card border-game-purple/30 text-game-text w-full"
+        />
+        <Button
+          type="submit"
+          disabled={!isActive || !message.trim()}
+          className="bg-game-purple hover:bg-game-purple/80 text-white"
+        >
+          Send
+        </Button>
+      </form>
+    </>
   );
 };
 

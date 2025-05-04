@@ -1,42 +1,62 @@
 import { Participant, Round } from "@/client/types/gameTypes";
+import { shuffle } from "radashi";
 
-export const mockParticipants: Participant[] = [
-  {
-    id: "player",
-    name: "You",
-    type: "player",
-    isEliminated: false,
-    avatar: "👤",
-  },
-  {
-    id: "ai1",
-    name: "Nova",
-    type: "ai",
-    isEliminated: false,
-    avatar: "🤖",
-  },
-  {
-    id: "ai2",
-    name: "Echo",
-    type: "ai",
-    isEliminated: false,
-    avatar: "🤖",
-  },
-  {
-    id: "ai3",
-    name: "Astra",
-    type: "ai",
-    isEliminated: false,
-    avatar: "🤖",
-  },
-  {
-    id: "human1",
-    name: "Alex",
-    type: "human",
-    isEliminated: false,
-    avatar: "👤",
-  },
+const nameOptions = [
+  "Alex",
+  "Jordan",
+  "Taylor",
+  "Morgan",
+  "Casey",
+  "Riley",
+  "Quinn",
+  "Jamie",
+  "Avery",
+  "Parker",
+  "Drew",
+  "Skyler",
+  "Reese",
+  "Rowan",
+  "Blake",
+  "Harper",
+  "Emerson",
+  "Finley",
+  "Dakota",
+  "Sage",
 ];
+
+export function initParticipants(): Participant[] {
+  const names = shuffle(nameOptions);
+  return [
+    {
+      id: "player",
+      name: names[0],
+      type: "player",
+      isEliminated: false,
+      avatar: "👤",
+    },
+    {
+      id: "ai1",
+      name: names[1],
+      type: "ai",
+      isEliminated: false,
+      avatar: "🤖",
+    },
+    {
+      id: "ai2",
+      name: names[2],
+      type: "ai",
+      isEliminated: false,
+      avatar: "🤖",
+    },
+    {
+      id: "ai3",
+      name: names[3],
+      type: "ai",
+      isEliminated: false,
+      avatar: "🤖",
+    },
+  ];
+}
 
 export const mockPrompts: string[] = [
   "What hobby would you pick up if money and time weren't issues?",

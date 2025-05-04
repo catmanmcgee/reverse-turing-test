@@ -1,282 +1,356 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { create } from "zustand";
 import {
   GameState,
   Participant,
   Message,
   Round,
-  Vote,
 } from "@/client/types/gameTypes";
-import {
-  mockParticipants,
-  mockPrompts,
-  aiResponses,
-} from "@/client/data/mockData";
-
-interface GameContextType {
-  gameState: GameState;
-  startGame: () => void;
-  sendMessage: (content: string) => void;
-  voteParticipant: (voterId: string, targetId: string) => void;
-  endVoting: () => void;
-  startNextRound: () => void;
-  resetGame: () => void;
-}
+import { initParticipants, mockPrompts } from "@/client/data/mockData";
+import { shuffle } from "radashi";
+import { immer } from "zustand/middleware/immer";
+import { fetchWithRetry } from "./Fetch";
 
 const defaultGameState: GameState = {
   gameId: "",
   participants: [],
-  rounds: [],
-  currentRound: 0,
+  participantOrder: [],
+  currentRound: -1,
   status: "lobby",
   winner: null,
+  playerName: "",
 };
 
-export const GameContext = createContext<GameContextType>({
-  gameState: defaultGameState,
-  startGame: () => {},
-  sendMessage: () => {},
-  voteParticipant: () => {},
-  endVoting: () => {},
-  startNextRound: () => {},
-  resetGame: () => {},
-});
+const defaultRounds: Round[] = [];
 
-export const useGame = () => useContext(GameContext);
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
-export const GameProvider = ({ children }: { children: ReactNode }) => {
-  const [gameState, setGameState] = useState<GameState>(defaultGameState);
+interface GameStore {
+  gameState: GameState;
+  rounds: Round[];
+  startGame: () => void;
+  sendPlayerMessage: (content: string) => void;
+  aiVote: (obj: { from: string; vote: Record<string, any> }) => void;
+  endVoting: () => void;
+  startNextRound: () => void;
+  startChatting: () => Promise<void>;
+  resetGame: () => void;
+  aiResponse: (participant: Participant) => Promise<void>;
+  startVoting: () => void;
+}
 
-  const generateId = () => Math.random().toString(36).substring(2, 9);
+export const useGameStore = create<GameStore>()(
+  immer((set) => ({
+    gameState: defaultGameState,
+    rounds: defaultRounds,
+    startGame: () => {
+      const gameId = generateId();
+      const participants = initParticipants();
 
-  // Initialize a new game
-  const startGame = () => {
-    const gameId = generateId();
-    const participants = [...mockParticipants];
-    const shuffledPrompts = [...mockPrompts].sort(() => 0.5 - Math.random());
+      set((state) => {
+        state.gameState = {
+          playerName: participants[0].name,
+          gameId,
+          participants,
+          participantOrder: shuffle(participants.map((p) => p.name)),
+          currentRound: -1,
+          status: "active",
+          winner: null,
+        };
+        state.rounds = [];
+      });
 
-    const firstRound: Round = {
-      number: 1,
-      prompt: shuffledPrompts[0],
-      messages: [],
-      votingComplete: false,
-      votedOutId: null,
-    };
-
-    setGameState({
-      gameId,
-      participants,
-      rounds: [firstRound],
-      currentRound: 0,
-      status: "active",
-      winner: null,
-    });
-
-    // Simulate AI responses after a delay
-    setTimeout(() => {
-      simulateAIResponses(firstRound.prompt);
-    }, 2000);
-  };
-
-  // Simulate AI responses to the current prompt
-  const simulateAIResponses = (prompt: string) => {
-    const aiParticipants = gameState.participants.filter(
-      (p) => p.type === "ai" && !p.isEliminated
-    );
-
-    const promptType = prompt.toLowerCase().includes("hobby")
-      ? "hobby"
-      : "perfect-day";
-
-    aiParticipants.forEach((ai, index) => {
-      const delay = 3000 + index * 4000 + Math.random() * 2000;
       setTimeout(() => {
-        const availableResponses = aiResponses[ai.id]?.[promptType] || [];
-        if (availableResponses.length > 0) {
-          const randomResponse =
-            availableResponses[
-              Math.floor(Math.random() * availableResponses.length)
-            ];
-          const aiMessage: Message = {
-            id: generateId(),
-            senderId: ai.id,
-            content: randomResponse,
-            timestamp: Date.now(),
-          };
+        useGameStore.getState().startNextRound();
+      }, 100);
+    },
 
-          setGameState((prev) => {
-            const updatedRounds = [...prev.rounds];
-            updatedRounds[prev.currentRound] = {
-              ...updatedRounds[prev.currentRound],
-              messages: [
-                ...updatedRounds[prev.currentRound].messages,
-                aiMessage,
-              ],
-            };
-            return {
-              ...prev,
-              rounds: updatedRounds,
-            };
+    aiResponse: async (participant: Participant) => {
+      const { gameState, rounds } = useGameStore.getState();
+
+      const textContext = rounds
+        .map((round) => {
+          const condensedMessages = round.messages
+            .map((message) => `${message.senderId}: ${message.content}`)
+            .join("\n");
+          return `Round ${round.number}: ${round.prompt}
+        ${condensedMessages}
+        Now it's ${participant.name}'s turn to respond.`; // This is very important or the AI will impersonate the player and other participants.
+        })
+        .join("\n\n");
+
+      const body = await fetchWithRetry("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          messages: [textContext],
+          systemPrompt: "0.1",
+          model:
+            new URLSearchParams(window.location.search).get("model") ||
+            "mistralai/Mistral-7B-Instruct-v0.3",
+        }),
+      });
+
+      const message = body.choices[0].message.content;
+
+      const aiMessage: Message = {
+        senderId: participant.name,
+        content: message,
+        timestamp: Date.now(),
+      };
+
+      set((state) => {
+        const { currentRound } = state.gameState;
+        state.rounds[currentRound].messages.push(aiMessage);
+      });
+    },
+
+    aiVote: ({ from, vote }) => {
+      // Sample vote:
+      // {
+      //   suspected_human_name: 'Dakota',
+      //   suspicion_level_percent_Dakota: 80,
+      //   suspicion_level_percent_Sage: 5,
+      //    suspicion_level_percent_Jamie: 5
+      // }
+      const votedPlayer = vote.suspected_human_name;
+      const suspicousLevels = Object.entries(vote).reduce<
+        Record<string, number>
+      >((acc, [key, value]) => {
+        if (key.startsWith("suspicion_level_percent_")) {
+          const participantName = key.replace("suspicion_level_percent_", "");
+          acc[participantName] = value;
+        }
+        return acc;
+      }, {});
+      const { gameState } = useGameStore.getState();
+      if (gameState.status !== "voting") return;
+
+      set((state) => {
+        const { currentRound } = state.gameState;
+        state.rounds[currentRound].votes.push({
+          from,
+          vote: votedPlayer,
+          suspicousLevels,
+        });
+      });
+    },
+
+    sendPlayerMessage: (content: string) => {
+      const { gameState } = useGameStore.getState();
+      if (gameState.status !== "player-turn") return;
+
+      const message: Message = {
+        senderId: gameState.participants.find((i) => i.type === "player")
+          ?.name!,
+        content,
+        timestamp: Date.now(),
+      };
+
+      set((state) => {
+        const { currentRound } = state.gameState;
+        state.rounds[currentRound].messages.push(message);
+        state.gameState.status = "active";
+      });
+    },
+
+    voteParticipant: (voterId: string, targetId: string) => {
+      console.log("not implemented");
+    },
+
+    endVoting: () =>
+      set((state) => {
+        const currentRound = state.rounds[state.gameState.currentRound];
+
+        const voteCounts = Object.entries(
+          Object.values(currentRound.votes).reduce<Record<string, number>>(
+            (acc, vote) => {
+              acc[vote.vote] = (acc[vote.vote] || 0) + 1;
+              return acc;
+            },
+            {}
+          )
+        );
+        voteCounts.sort((a, b) => b[1] - a[1]);
+        if (voteCounts.length > 1 && voteCounts[0][1] === voteCounts[1][1]) {
+          alert("tie vote");
+          return;
+        }
+
+        const eliminatedId = voteCounts[0][0];
+        const eliminatedParticipant = state.gameState.participants.find(
+          (p) => p.name === eliminatedId
+        );
+        currentRound.messages.push({
+          senderId: "game",
+          content: `${eliminatedParticipant?.name} has been eliminated!`,
+          timestamp: Date.now(),
+        });
+
+        eliminatedParticipant.isEliminated = true;
+
+        const remainingAIs = state.gameState.participants.filter(
+          (p) => p.type === "ai" && !p.isEliminated
+        ).length;
+        const remainingPlayers = state.gameState.participants.filter(
+          (p) => p.type === "player" && !p.isEliminated
+        ).length;
+
+        if (remainingPlayers === 0) {
+          state.gameState.status = "results";
+          state.gameState.winner = "ai";
+        } else if (remainingAIs === 0) {
+          state.gameState.status = "results";
+          state.gameState.winner = "human";
+        } else {
+          state.gameState.status = "active";
+          state.gameState.winner = null;
+          setTimeout(() => {
+            useGameStore.getState().startNextRound();
+          }, 100);
+        }
+      }),
+
+    startChatting: async () => {
+      const { participantOrder } = useGameStore.getState().gameState;
+      let i = 0;
+      const participants = participantOrder
+        .map(
+          (a) =>
+            useGameStore
+              .getState()
+              .gameState.participants.find((p) => p.name === a)!
+        )
+        .filter((a) => !a.isEliminated);
+      for (const participant of participants) {
+        if (participant.type === "ai") {
+          set((state) => {
+            state.gameState.participants.find(
+              (p) => p.name === participant.name
+            )!.isSpeaking = true;
+          });
+          await useGameStore.getState().aiResponse(participant);
+          set((state) => {
+            state.gameState.participants.find(
+              (p) => p.name === participant.name
+            )!.isSpeaking = false;
+          });
+        } else {
+          set((state) => {
+            state.gameState.status = "player-turn";
+          });
+          await new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+              if (useGameStore.getState().gameState.status !== "player-turn") {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 100);
           });
         }
-      }, delay);
-    });
-  };
+        i++;
+      }
+      useGameStore.getState().startVoting();
+    },
 
-  // Send a message from the player
-  const sendMessage = (content: string) => {
-    if (gameState.status !== "active") return;
+    startNextRound: () => {
+      set((state) => {
+        const usedPrompts = state.rounds.map((r) => r.prompt);
+        const availablePrompts = mockPrompts.filter(
+          (p) => !usedPrompts.includes(p)
+        );
 
-    const message: Message = {
-      id: generateId(),
-      senderId: "player",
-      content,
-      timestamp: Date.now(),
-    };
+        const nextPrompt =
+          availablePrompts.length > 0
+            ? availablePrompts[
+                Math.floor(Math.random() * availablePrompts.length)
+              ]
+            : mockPrompts[Math.floor(Math.random() * mockPrompts.length)];
 
-    setGameState((prev) => {
-      const updatedRounds = [...prev.rounds];
-      updatedRounds[prev.currentRound] = {
-        ...updatedRounds[prev.currentRound],
-        messages: [...updatedRounds[prev.currentRound].messages, message],
-      };
-      return {
-        ...prev,
-        rounds: updatedRounds,
-      };
-    });
-  };
+        const nextRoundNumber = state.rounds.length + 1;
 
-  // Register a vote
-  const voteParticipant = (voterId: string, targetId: string) => {
-    if (gameState.status !== "voting") return;
+        const nextRound: Round = {
+          number: nextRoundNumber,
+          prompt: nextPrompt,
+          messages: [],
+          votes: [],
+        };
 
-    setGameState((prev) => {
-      // Set the game to voting status if not already
-      let newStatus = "voting";
+        state.rounds = state.rounds.concat([nextRound]);
 
-      // For this simplified version, we'll just count the player's vote
-      // In a real implementation, we would track all votes and determine the most voted
-      return {
-        ...prev,
-        status: newStatus,
-        rounds: prev.rounds.map((round, index) =>
-          index === prev.currentRound
-            ? { ...round, votedOutId: targetId }
-            : round
-        ),
-      };
-    });
-  };
+        state.gameState = {
+          ...state.gameState,
+          currentRound: state.gameState.currentRound + 1,
+          status: "active",
+          participantOrder: shuffle(
+            state.gameState.participants.map((p) => p.name)
+          ),
+        };
+        setTimeout(() => {
+          useGameStore.getState().startChatting();
+        }, 100);
+      });
+    },
 
-  // End the voting phase and update eliminated participants
-  const endVoting = () => {
-    setGameState((prev) => {
-      const currentRound = prev.rounds[prev.currentRound];
-      const eliminatedId = currentRound.votedOutId;
+    resetGame: () => {
+      set((state) => {
+        state.gameState = defaultGameState;
+        state.rounds = defaultRounds;
+      });
+    },
 
-      // Update participants to mark the eliminated one
-      const updatedParticipants = prev.participants.map((p) =>
-        p.id === eliminatedId ? { ...p, isEliminated: true } : p
+    startVoting: () => {
+      const voteCalls = Promise.all(
+        useGameStore
+          .getState()
+          .gameState.participants.filter((a) => a.type === "ai")
+          .map(async (participant) => {
+            const textContext = useGameStore
+              .getState()
+              .rounds.map((round) => {
+                const condensedMessages = round.messages
+                  .map((message) => `${message.senderId}: ${message.content}`)
+                  .join("\n");
+                return `Round ${round.number}: ${round.prompt}
+    ${condensedMessages}
+    Now it's ${participant.name}'s turn to vote for who they think is the human.`;
+              })
+              .join("\n\n");
+
+            set((state) => {
+              state.gameState.participants.find(
+                (p) => p.name === participant.name
+              )!.isVoting = true;
+            });
+            const body = await fetchWithRetry("/api/vote", {
+              method: "POST",
+              body: JSON.stringify({
+                messages: [textContext],
+                systemPrompt: "0.1",
+                model:
+                  new URLSearchParams(window.location.search).get("model") ||
+                  "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+                liveParticipants: useGameStore
+                  .getState()
+                  .gameState.participants.filter(
+                    (a) => !a.isEliminated && a.name !== participant.name
+                  )
+                  .map((a) => a.name),
+              }),
+            });
+            const vote = JSON.parse(body.choices[0].message.content);
+            set((state) => {
+              state.gameState.participants.find(
+                (p) => p.name === participant.name
+              )!.isVoting = false;
+            });
+            useGameStore.getState().aiVote({ from: participant.name, vote });
+          })
       );
 
-      // Check if the game should end
-      const remainingHumans = updatedParticipants.filter(
-        (p) => p.type === "human" && !p.isEliminated
-      ).length;
-      const remainingAIs = updatedParticipants.filter(
-        (p) => p.type === "ai" && !p.isEliminated
-      ).length;
-      const remainingPlayers = updatedParticipants.filter(
-        (p) => p.type === "player" && !p.isEliminated
-      ).length;
+      voteCalls.then(() => useGameStore.getState().endVoting());
 
-      // Game ends if all humans or all AIs are eliminated
-      let newStatus: GameState["status"] = "active";
-      let winner: string | null = null;
-
-      if (remainingHumans === 0 && remainingPlayers === 0) {
-        // AIs win
-        newStatus = "results";
-        winner = "ai";
-      } else if (remainingAIs === 0) {
-        // Humans win
-        newStatus = "results";
-        winner = "human";
-      }
-
-      return {
-        ...prev,
-        participants: updatedParticipants,
-        status: newStatus,
-        winner,
-      };
-    });
-  };
-
-  // Start the next round
-  const startNextRound = () => {
-    setGameState((prev) => {
-      // Select a new prompt (avoiding repeats)
-      const usedPrompts = prev.rounds.map((r) => r.prompt);
-      const availablePrompts = mockPrompts.filter(
-        (p) => !usedPrompts.includes(p)
-      );
-
-      // If we've used all prompts, shuffle and reuse
-      let nextPrompt = "";
-      if (availablePrompts.length > 0) {
-        nextPrompt =
-          availablePrompts[Math.floor(Math.random() * availablePrompts.length)];
-      } else {
-        nextPrompt =
-          mockPrompts[Math.floor(Math.random() * mockPrompts.length)];
-      }
-
-      const nextRoundNumber = prev.rounds.length + 1;
-
-      // Create the next round
-      const nextRound: Round = {
-        number: nextRoundNumber,
-        prompt: nextPrompt,
-        messages: [],
-        votingComplete: false,
-        votedOutId: null,
-      };
-
-      const newState = {
-        ...prev,
-        rounds: [...prev.rounds, nextRound],
-        currentRound: prev.currentRound + 1,
-        status: "active",
-      };
-
-      // Simulate AI responses after a delay
-      setTimeout(() => {
-        simulateAIResponses(nextPrompt);
-      }, 2000);
-
-      return newState;
-    });
-  };
-
-  // Reset the game to lobby state
-  const resetGame = () => {
-    setGameState(defaultGameState);
-  };
-
-  return (
-    <GameContext.Provider
-      value={{
-        gameState,
-        startGame,
-        sendMessage,
-        voteParticipant,
-        endVoting,
-        startNextRound,
-        resetGame,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
-  );
-};
+      set((state) => {
+        state.gameState.status = "voting";
+      });
+    },
+  }))
+);

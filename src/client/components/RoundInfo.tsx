@@ -1,10 +1,12 @@
 import { Badge } from "@/client/components/ui/badge";
-import { useGame } from "@/client/contexts/GameContext";
+import { useGameStore } from "@/client/contexts/GameContext";
+import { stat } from "fs";
 
 const RoundInfo = () => {
-  const { gameState } = useGame();
+  const currentRoundNum = useGameStore((state) => state.gameState.currentRound);
+  const rounds = useGameStore((state) => state.rounds);
 
-  const currentRound = gameState.rounds[gameState.currentRound];
+  const currentRound = rounds[currentRoundNum];
 
   if (!currentRound) return null;
 

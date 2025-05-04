@@ -1,11 +1,12 @@
-import express from "express";
+import express, { Router, json } from "express";
 import ViteExpress from "vite-express";
 import { initServer } from "./api";
-import bodyParser from "body-parser";
 
 const app = express();
-app.use(bodyParser.json());
+app.use(json());
+const router = Router();
+initServer(router);
 
-initServer(app);
+app.use("/api/", router);
 
 ViteExpress.listen(app, 3000, () => console.log("Server is listening..."));

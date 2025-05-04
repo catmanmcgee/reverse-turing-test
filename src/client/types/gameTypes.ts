@@ -1,38 +1,40 @@
-export type ParticipantType = "ai" | "human" | "player";
+export type ParticipantType = "ai" | "human" | "player" | "game";
 
 export type Participant = {
   id: string;
   name: string;
   type: ParticipantType;
   isEliminated: boolean;
-  avatar: string;
+  avatar: string | JSX.Element;
+  isSpeaking?: boolean;
+  isVoting?: boolean;
 };
 
 export type Message = {
-  id: string;
   senderId: string;
   content: string;
   timestamp: number;
+};
+
+export type Vote = {
+  from: string;
+  vote: string;
+  suspicousLevels: Record<string, number>;
 };
 
 export type Round = {
   number: number;
   prompt: string;
   messages: Message[];
-  votingComplete: boolean;
-  votedOutId: string | null;
+  votes: Vote[];
 };
 
 export type GameState = {
+  playerName: string;
   gameId: string;
   participants: Participant[];
-  rounds: Round[];
   currentRound: number;
-  status: "lobby" | "active" | "voting" | "results";
+  status: "lobby" | "active" | "voting" | "results" | "player-turn";
+  participantOrder: string[];
   winner: string | null;
-};
-
-export type Vote = {
-  voterId: string;
-  targetId: string;
 };

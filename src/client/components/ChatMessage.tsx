@@ -1,28 +1,39 @@
-import { useGame } from "@/client/contexts/GameContext";
+import { useGameStore } from "@/client/contexts/GameContext";
 import { Message } from "@/client/types/gameTypes";
 import { cn } from "@/client/lib/utils";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
 
 interface ChatMessageProps {
   message: Message;
 }
 
 const ChatMessage = ({ message }: ChatMessageProps) => {
-  const { gameState } = useGame();
+  const { gameState } = useGameStore();
 
-  const sender = gameState.participants.find((p) => p.id === message.senderId);
+  let sender = gameState.participants.find((p) => p.name === message.senderId);
 
-  if (!sender) return null;
+  if (message.senderId === "game") {
+    sender = {
+      name: "Game",
+      type: "game",
+      avatar: <InfoCircledIcon className="w-4 h-4" />,
+      isEliminated: false,
+      id: "game",
+    };
+  }
 
   const messageClasses = {
     ai: "chat-message-ai",
     human: "chat-message-human",
     player: "chat-message-player",
+    game: "chat-message-game",
   };
 
   const avatarColors = {
     ai: "bg-game-blue/20 text-game-blue",
     human: "bg-game-purple/20 text-game-purple",
     player: "bg-game-teal/20 text-game-teal",
+    game: "bg-game-yellow/20 text-game-yellow",
   };
 
   return (

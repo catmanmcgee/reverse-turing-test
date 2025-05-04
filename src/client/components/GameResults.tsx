@@ -1,9 +1,9 @@
-import { useGame } from "@/client/contexts/GameContext";
+import { useGameStore } from "@/client/contexts/GameContext";
 import { Button } from "@/client/components/ui/button";
 import { cn } from "@/client/lib/utils";
 
 const GameResults = () => {
-  const { gameState, resetGame } = useGame();
+  const { gameState, resetGame, rounds } = useGameStore();
 
   if (gameState.status !== "results") return null;
 
@@ -12,7 +12,7 @@ const GameResults = () => {
   const descriptionText =
     gameState.winner === "human"
       ? "The humans have successfully eliminated all the AIs!"
-      : "The AIs have successfully eliminated all the humans!";
+      : "The AIs have successfully eliminated all the human!";
 
   const bgColor =
     gameState.winner === "human"
@@ -45,9 +45,7 @@ const GameResults = () => {
       {/* Game statistics could go here */}
       <div className="pt-4 border-t border-white/10">
         <h3 className="text-lg mb-3">Game Stats</h3>
-        <p className="text-sm opacity-70">
-          Rounds played: {gameState.rounds.length}
-        </p>
+        <p className="text-sm opacity-70">Rounds played: {rounds.length}</p>
       </div>
     </div>
   );

@@ -1,11 +1,11 @@
-import { useGame } from "@/client/contexts/GameContext";
+import { useGameStore } from "@/client/contexts/GameContext";
 import { Button } from "@/client/components/ui/button";
 import { cn } from "@/client/lib/utils";
 
 const EliminationAnnouncement = () => {
-  const { gameState, startNextRound } = useGame();
+  const { gameState, startNextRound, rounds } = useGameStore();
 
-  const currentRound = gameState.rounds[gameState.currentRound];
+  const currentRound = rounds[gameState.currentRound];
 
   if (
     !currentRound ||
