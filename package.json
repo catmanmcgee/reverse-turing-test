@@ -1,11 +1,11 @@
 {
-  "name": "bot_or_not",
+  "name": "reverse_turing_test",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "nodemon -w src/server --env-file=.env -x tsx src/server/main.ts",
-    "build": "vite build",
+    "build": "prisma generate && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
