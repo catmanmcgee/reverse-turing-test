@@ -12,6 +12,7 @@ import {
 import { togetherAiModels } from "../../togetherAiModels";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { useModelStats } from "../hooks/useModelStats";
+import { useTogetherCredits } from "../hooks/useTogetherCredits";
 import { round } from "radashi";
 
 const Index = () => {
@@ -21,6 +22,7 @@ const Index = () => {
     "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
   );
   const { data: modelStats, isLoading } = useModelStats();
+  const { data: credits } = useTogetherCredits();
 
   const startNewGame = () => {
     resetGame();
@@ -115,6 +117,20 @@ const Index = () => {
           >
             Start New Game
           </Button>
+          {credits && (
+            <>
+              <div className="text-sm text-game-blue mt-2">
+                Together.ai Credits Remaining: $
+                {round((credits.finalAmountCentsAfterSettlement / 100) * -1, 2)}
+              </div>
+              {credits.finalAmountCentsAfterSettlement > -500 && (
+                <div>
+                  Running low on credits... do you know anyone who works there?
+                  😭😭😭
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className="text-lg max-w-2xl mx-auto opacity-80 flex flex-col items-center mb-8 gap-8">

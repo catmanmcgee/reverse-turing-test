@@ -21,6 +21,7 @@ const ChatInput = () => {
   useEffect(() => {
     if (isActive && inputRef.current) {
       inputRef.current.focus();
+      window.scrollTo(0, document.body.scrollHeight);
     }
   }, [inputRef, isActive]);
   return (
