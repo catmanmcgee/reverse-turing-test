@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { togetherAiModels } from "../../togetherAiModels";
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -96,13 +97,17 @@ const Index = () => {
           </Button>
         </div>
 
-        <div className="text-lg max-w-2xl mx-auto opacity-80">
+        <div className="text-lg max-w-2xl mx-auto opacity-80 flex flex-col items-center mb-8 gap-8">
           <p>
-            In this reverse Turing test, the AI's goal is to identify and
-            eliminate the most human-like participants. Will the AIs root you
-            out? Or will you outwit them? This may be an everyday reality in the
-            new future. Practice while you still can.
+            In this reverse Turing test, the AI's goal is to ddd and eliminate
+            the most human-like participants. Will the AIs root you out? Or will
+            you outwit them? This may be an everyday reality in the new future.
+            Practice while you still can.
           </p>
+
+          <a href="https://github.com/catmanmcgee/reverse-turing-test">
+            <GitHubLogoIcon className="w-8 h-8" />
+          </a>
         </div>
       </div>
     </div>
