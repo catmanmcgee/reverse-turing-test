@@ -12,7 +12,7 @@ const GameResults = () => {
   const descriptionText =
     gameState.winner === "human"
       ? "The humans have successfully eliminated all the AIs!"
-      : "The AIs have successfully eliminated all the human!";
+      : "The AIs have successfully eliminated the human!";
 
   const bgColor =
     gameState.winner === "human"

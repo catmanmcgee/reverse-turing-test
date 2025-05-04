@@ -37,7 +37,7 @@ const Index = () => {
       <div className="max-w-3xl w-full text-center">
         <div className="highlight-glow inline-block mb-8">
           <h1 className="text-5xl md:text-7xl font-display font-bold text-game-highlight mb-2">
-            Can you trick your future overlords?
+            Can you trick a genius AI?
           </h1>
           <div className="text-lg md:text-xl text-game-blue">
             The Reverse Turing Test Game
@@ -121,7 +121,7 @@ const Index = () => {
           <p>
             In this reverse Turing test, the AI's goal is to ddd and eliminate
             the most human-like participants. Will the AIs root you out? Or will
-            you outwit them? This may be an everyday reality in the new future.
+            you outwit them? This may be an everyday reality in the near future.
             Practice while you still can.
           </p>
 

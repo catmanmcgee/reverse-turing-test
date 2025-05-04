@@ -191,9 +191,7 @@ export const useGameStore = create<GameStore>()(
           fetchWithRetry("/api/recordGame", {
             method: "POST",
             body: JSON.stringify({
-              messages: formatRoundMessages(state.rounds).concat(
-                JSON.stringify(state.rounds.map((a) => a.votes))
-              ),
+              messages: JSON.stringify(state.rounds),
               systemPrompt: "0.1",
               model: getModelName(),
               isWin: remainingPlayers > 0,
@@ -208,6 +206,9 @@ export const useGameStore = create<GameStore>()(
             state.gameState.status = "results";
             state.gameState.winner = "human";
           }
+          setTimeout(() => {
+            window.scrollTo(0, 0);
+          }, 100);
         } else {
           state.gameState.status = "active";
           state.gameState.winner = null;

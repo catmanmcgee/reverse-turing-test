@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export function initRecordGame(app: Router): void {
   app.post("/recordGame", async (req: Request, res: Response) => {
     const messages: string[] = req.body.messages;
-    if (!messages || messages.length === 0) {
+    if (!messages || messages.length === 0 || typeof messages !== "string") {
       res.status(400).send("No messages provided");
       return;
     }
@@ -22,10 +22,10 @@ export function initRecordGame(app: Router): void {
     const isWin = req.body.isWin;
 
     try {
-      const game = await prisma.recorded_game.create({
+      await prisma.recorded_game.create({
         data: {
           model_name: req.body.model,
-          history: messages.join("\n"),
+          history: messages,
           is_win: isWin,
         },
       });

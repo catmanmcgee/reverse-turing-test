@@ -67,6 +67,7 @@ const fetchVoteCompletion = async (
     messages: messages as any,
     stream: false,
     response_format: getVoteSchema(liveParticipants),
+    max_tokens: 1000,
   });
 };
 

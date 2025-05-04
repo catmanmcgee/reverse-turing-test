@@ -75,6 +75,7 @@ const fetchChatCompletion = async (
     model,
     stream: false,
     messages: messages as any,
+    max_tokens: 1000,
   });
   return response;
 };

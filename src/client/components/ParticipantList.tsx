@@ -14,11 +14,12 @@ const ParticipantList = () => {
         Participants
       </h3>
       <div className="space-y-2">
-        {participantOrder.map((participantName) => {
+        {participantOrder.map((participantName, idx) => {
           return (
             <ParticipantItem
               key={participantName}
               participantName={participantName}
+              idx={idx}
             />
           );
         })}
@@ -39,7 +40,7 @@ const avatarColors = {
   player: "bg-game-teal/20 text-game-teal",
 };
 
-function ParticipantItem({ participantName }) {
+function ParticipantItem({ participantName, idx }) {
   const participant = useGameStore((state) =>
     state.gameState.participants.find((p) => p.name === participantName)
   );
@@ -61,6 +62,8 @@ function ParticipantItem({ participantName }) {
     );
     didVoteForPlayer = curVote === playerName;
   }
+  const floatClass = `top-${idx * 8 + 4} fixed md:hidden left-0 w-screen
+        bg-black/50 z-50 text-white text-center text-2xl shimmer`;
   return (
     <div
       className={cn(
@@ -89,17 +92,23 @@ function ParticipantItem({ participantName }) {
             didVoteForPlayer && "text-red-500"
           )}
         >
-          {curVote && `Voted for: ${curVote}`}
+          {curVote && `Voted for: ${curVote} ${didVoteForPlayer && "(You)"}`}
         </div>
         <div className="text-xs opacity-70">
           {totalSuspicion > 0 && `Suspicion Level: ${totalSuspicion}`}
         </div>
       </div>
       {participant.isSpeaking && (
-        <ChatBubbleIcon className="text-game-highlight ml-2 shimmer" />
+        <>
+          <ChatBubbleIcon className="text-game-highlight ml-2 shimmer" />
+          <div className={floatClass}>{participant.name} is speaking</div>
+        </>
       )}
       {participant.isVoting && (
-        <FileTextIcon className="text-game-highlight ml-2 shimmer" />
+        <>
+          <FileTextIcon className="text-game-highlight ml-2 shimmer" />
+          <div className={floatClass}>{participant.name} is voting</div>
+        </>
       )}
     </div>
   );

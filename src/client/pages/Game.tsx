@@ -84,6 +84,11 @@ const Game = () => {
               </div>
             )}
 
+            {/* Sidebar */}
+            <div>
+              <ParticipantList />
+            </div>
+
             {/* Chat container */}
             <div className="bg-game-card rounded-lg p-4">
               <h2 className="text-xl font-display mb-4 text-game-highlight">
@@ -104,11 +109,6 @@ const Game = () => {
 
               <ChatInput />
             </div>
-          </div>
-
-          {/* Sidebar */}
-          <div>
-            <ParticipantList />
           </div>
         </div>
       </div>

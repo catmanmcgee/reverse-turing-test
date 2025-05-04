@@ -126,5 +126,18 @@ export default {
       },
     },
   },
+  safelist: [
+    "top-0",
+    "top-4",
+    "top-8",
+    "top-12",
+    "top-16",
+    "top-20",
+    "top-24",
+    "top-28",
+    "top-32",
+    "top-36",
+    "top-40",
+  ],
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
