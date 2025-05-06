@@ -7,6 +7,7 @@ import RoundInfo from "@/client/components/RoundInfo";
 import VotingPanel from "@/client/components/VotingPanel";
 import EliminationAnnouncement from "@/client/components/EliminationAnnouncement";
 import GameResults from "@/client/components/GameResults";
+import SpeakingIndicator from "@/client/components/SpeakingIndicator";
 import { Button } from "@/client/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -99,6 +100,8 @@ const Game = () => {
               <h2 className="text-xl font-display mb-4 text-game-highlight">
                 Discussion
               </h2>
+
+              <SpeakingIndicator />
 
               <div className="mb-4 max-h-[50vh] overflow-y-auto space-y-2">
                 {currentRound?.messages.map((message, idx) => (

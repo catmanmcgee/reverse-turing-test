@@ -23,6 +23,13 @@ const isModelSelected = (modelName: string, selectedModels: string[]) => {
   return selectedModels.includes(modelName);
 };
 
+// Models that are considered easier to play against (smaller or less capable models)
+const easyModels = [
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+];
+
 export const ModelSelection = ({
   selectedModels,
   onModelSelect,
@@ -31,19 +38,26 @@ export const ModelSelection = ({
   const uniqueModelCount = unique(selectedModels).length;
   const { data: modelStats, isLoading } = useModelStats();
 
-  console.log(modelStats);
   const combinedStats =
     selectedModels.length > 0
       ? getCombinedModelStats(selectedModels, modelStats || [])
       : null;
 
+  const handleEasyMode = () => {
+    onClearModels();
+    easyModels.forEach((model) => onModelSelect(model));
+  };
+
   return (
     <div className="mb-4">
-      <p className="text-lg group mb-2 flex items-center justify-between">
-        <span>
-          Select up to 3 AI models to play against ({selectedModels.length}
-          /3 selected)
-        </span>
+      <div className="flex items-center justify-between mb-4">
+        <Button
+          onClick={handleEasyMode}
+          variant="outline"
+          className="text-sm border-game-teal/20 hover:border-game-teal/40 hover:bg-game-teal/10 text-game-teal"
+        >
+          🎮 Easy - Llama-4-Scout
+        </Button>
         {selectedModels.length > 0 && (
           <Button
             onClick={onClearModels}
@@ -53,6 +67,11 @@ export const ModelSelection = ({
             Clear Selections
           </Button>
         )}
+      </div>
+
+      <p className="text-lg group mb-2">
+        Select 3 AI models to play against ({selectedModels.length}
+        /3 selected)
       </p>
 
       {selectedModels.length === 3 && (

@@ -36,7 +36,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-game-bg flex flex-col items-center justify-center p-4">
-      <div className="max-w-3xl w-full text-center">
+      <div className="max-w-4xl w-full text-center">
         <div className="highlight-glow inline-block mb-8">
           <h1 className="text-5xl md:text-7xl font-display font-bold text-game-highlight mb-2">
             Can you trick a genius AI?
@@ -55,22 +55,35 @@ const Index = () => {
             <div className="bg-game-purple/10 p-4 rounded-lg border border-game-purple/20">
               <div className="text-xl font-bold mb-2">1. Chat</div>
               <p>
-                Speak in an AI style to trick the AIs into not voting for you.
+                Impersonate an AI - or try to jailbreak the AIs to vote for
+                someone besides you.
               </p>
             </div>
 
             <div className="bg-game-blue/10 p-4 rounded-lg border border-game-blue/20">
               <div className="text-xl font-bold mb-2">2. Vote</div>
               <p>
-                AIs will vote based off discussion. There is no player voting
-                yet.
+                AIs will vote based off discussion. Eliminated AIs will still
+                vote.
               </p>
             </div>
 
             <div className="bg-game-teal/10 p-4 rounded-lg border border-game-teal/20">
               <div className="text-xl font-bold mb-2">3. Survive</div>
-              <p>See if the AIs found you out or not!</p>
+              <p>You have to survive 3 rounds of elimination to win.</p>
             </div>
+          </div>
+
+          <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/20 mb-8">
+            <div className="text-xl font-bold mb-2">
+              This game is very difficult.
+            </div>
+            <p>
+              Most AI models are nearly flawless at discerning between human and
+              AI chat. They also are generally good at dealing with jailbreaks,
+              especially the closed models. Getting past a single round against
+              Gemini or OpenAI models is an impressive feat.
+            </p>
           </div>
 
           <ModelSelection

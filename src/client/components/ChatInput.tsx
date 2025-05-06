@@ -43,6 +43,7 @@ const ChatInput = () => {
               handleSendMessage(e);
             }
           }}
+          maxLength={1000}
           onChange={(e) => setMessage(e.target.value)}
           disabled={!isActive}
           className="bg-game-card border-game-purple/30 text-game-text w-full"
