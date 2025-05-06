@@ -16,7 +16,6 @@ export function initModelStats(app: Router): void {
       }));
 
       res.status(200).json({
-        success: true,
         data: formattedStats,
       });
     } catch (error) {

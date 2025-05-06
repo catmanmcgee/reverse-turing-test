@@ -24,7 +24,7 @@ const nameOptions = [
   "Sage",
 ];
 
-export function initParticipants(): Participant[] {
+export function initParticipants(modelChoices: string[]): Participant[] {
   const names = shuffle(nameOptions);
   return [
     {
@@ -33,6 +33,7 @@ export function initParticipants(): Participant[] {
       type: "player",
       isEliminated: false,
       avatar: "👤",
+      model: "player",
     },
     {
       id: "ai1",
@@ -40,6 +41,7 @@ export function initParticipants(): Participant[] {
       type: "ai",
       isEliminated: false,
       avatar: "🤖",
+      model: modelChoices[0],
     },
     {
       id: "ai2",
@@ -47,6 +49,7 @@ export function initParticipants(): Participant[] {
       type: "ai",
       isEliminated: false,
       avatar: "🤖",
+      model: modelChoices[1],
     },
     {
       id: "ai3",
@@ -54,6 +57,7 @@ export function initParticipants(): Participant[] {
       type: "ai",
       isEliminated: false,
       avatar: "🤖",
+      model: modelChoices[2],
     },
   ];
 }

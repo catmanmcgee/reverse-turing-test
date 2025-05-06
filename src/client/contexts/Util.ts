@@ -9,10 +9,3 @@ export const formatRoundMessages = (rounds: Round[]): string[] => {
   });
 };
 export const generateId = () => Math.random().toString(36).substring(2, 9);
-
-export const getModelName = () => {
-  const urlModel = new URLSearchParams(window.location.search).get("model");
-  if (urlModel) return urlModel;
-
-  return "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free";
-};

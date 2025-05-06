@@ -26,7 +26,7 @@ const defaultRounds: Round[] = [];
 interface GameStore {
   gameState: GameState;
   rounds: Round[];
-  startGame: () => void;
+  startGame: (initialModelChoices: string[]) => void;
   sendPlayerMessage: (content: string) => void;
   aiVote: (obj: { from: string; vote: Record<string, any> }) => void;
   endVoting: () => void;
@@ -41,9 +41,9 @@ export const useGameStore = create<GameStore>()(
   immer((set) => ({
     gameState: defaultGameState,
     rounds: defaultRounds,
-    startGame: () => {
+    startGame: (initialModelChoices: string[]) => {
       const gameId = generateId();
-      const participants = initParticipants();
+      const participants = initParticipants(initialModelChoices);
 
       set((state) => {
         state.gameState = {
@@ -75,7 +75,7 @@ export const useGameStore = create<GameStore>()(
         body: JSON.stringify({
           messages: [textContext],
           systemPrompt: "0.1",
-          model: getModelName(),
+          model: participant.model,
         }),
       });
 
@@ -189,7 +189,9 @@ export const useGameStore = create<GameStore>()(
             body: JSON.stringify({
               messages: JSON.stringify(state.rounds),
               systemPrompt: "0.1",
-              model: getModelName(),
+              models: state.gameState.participants
+                .filter((a) => a.type === "ai")
+                .map((a) => a.model),
               isWin: remainingPlayers > 0,
             }),
           });
@@ -228,15 +230,21 @@ export const useGameStore = create<GameStore>()(
       for (const participant of participants) {
         if (participant.type === "ai") {
           set((state) => {
-            state.gameState.participants.find(
+            const p = state.gameState.participants.find(
               (p) => p.name === participant.name
-            )!.isSpeaking = true;
+            );
+            if (p) {
+              p.isSpeaking = true;
+            }
           });
           await useGameStore.getState().aiResponse(participant);
           set((state) => {
-            state.gameState.participants.find(
+            const p = state.gameState.participants.find(
               (p) => p.name === participant.name
-            )!.isSpeaking = false;
+            );
+            if (p) {
+              p.isSpeaking = false;
+            }
           });
         } else {
           set((state) => {
@@ -327,7 +335,7 @@ export const useGameStore = create<GameStore>()(
               body: JSON.stringify({
                 messages: [textContext],
                 systemPrompt: "0.1",
-                model: getModelName(),
+                model: participant.model,
                 liveParticipants: useGameStore
                   .getState()
                   .gameState.participants.filter(

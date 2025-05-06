@@ -15,24 +15,30 @@ export function initRecordGame(app: Router): void {
       res.status(400).send("No system prompt provided");
       return;
     }
-    if (!req.body.model || typeof req.body.model !== "string") {
-      res.status(400).send("No model provided");
+    if (
+      !req.body.models ||
+      typeof req.body.models !== "object" ||
+      req.body.models.length !== 3
+    ) {
+      res.status(400).send("No model provided, or wrong model length");
       return;
     }
+    req.body.models.sort();
     const isWin = req.body.isWin;
 
     try {
       await prisma.recorded_game.create({
         data: {
-          model_name: req.body.model,
+          model_name: req.body.models,
           history: messages,
           is_win: isWin,
         },
       });
+      const model_name = req.body.models.join(",");
       await prisma.model_winrate_stats.upsert({
-        where: { model_name: req.body.model },
+        where: { model_name },
         create: {
-          model_name: req.body.model,
+          model_name,
           win_count: isWin ? 1 : 0,
           loss_count: isWin ? 0 : 1,
         },

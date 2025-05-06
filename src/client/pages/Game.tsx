@@ -24,8 +24,14 @@ const Game = () => {
 
   // Start the game when the component mounts if we're in the lobby
   useEffect(() => {
+    const models = new URLSearchParams(window.location.search)
+      .get("models")
+      ?.split(",");
     if (gameState.status === "lobby") {
-      startGame();
+      if (models.length !== 3) {
+        throw new Error("Invalid number of models");
+      }
+      startGame(models);
     }
   }, [gameState.status, startGame]);
 
@@ -94,7 +100,7 @@ const Game = () => {
                 Discussion
               </h2>
 
-              <div className="mb-4 space-y-2">
+              <div className="mb-4 max-h-[50vh] overflow-y-auto space-y-2">
                 {currentRound?.messages.map((message, idx) => (
                   <ChatMessage key={idx} message={message} />
                 ))}

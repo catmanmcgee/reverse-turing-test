@@ -11,26 +11,50 @@ import {
 } from "../components/ui/select";
 import { allModels } from "@/allModels";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { useModelStats } from "../hooks/useModelStats";
+import {
+  getModelStats,
+  getCombinedModelStats,
+  useModelStats,
+} from "../hooks/useModelStats";
 import { round } from "radashi";
+import clsx from "clsx";
 
 const Index = () => {
   const navigate = useNavigate();
   const { resetGame } = useGameStore();
-  const [model, setModel] = useState(
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
-  );
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const { data: modelStats, isLoading } = useModelStats();
 
   const startNewGame = () => {
+    if (selectedModels.length === 0) return;
     resetGame();
-    navigate(`/game?model=${encodeURIComponent(model)}`);
+    navigate(
+      `/game?models=${selectedModels
+        .map((m) => encodeURIComponent(m))
+        .join(",")}`
+    );
   };
 
-  const getModelStats = (modelName: string) => {
-    if (!modelStats) return null;
-    return modelStats.find((stat) => stat.modelName === modelName);
+  const handleModelSelect = (value: string) => {
+    setSelectedModels((prev) => {
+      if (prev.includes(value)) {
+        return prev.filter((m) => m !== value);
+      }
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, value];
+    });
   };
+
+  const isModelSelected = (modelName: string) => {
+    return selectedModels.includes(modelName);
+  };
+
+  const combinedStats =
+    selectedModels.length > 0
+      ? getCombinedModelStats(selectedModels, modelStats || [])
+      : null;
 
   return (
     <div className="min-h-screen bg-game-bg flex flex-col items-center justify-center p-4">
@@ -72,41 +96,90 @@ const Index = () => {
           </div>
 
           <div className="mb-4">
-            <p className="text-lg  group mb-2 block">
-              Pick from Together.ai models, OpenAi Models and Gemini models.
+            <p className="text-lg group mb-2 block">
+              Select up to 3 AI models to play against ({selectedModels.length}
+              /3 selected)
             </p>
 
-            <Select onValueChange={(value) => setModel(value)} value={model}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent>
-                {allModels.map((model) => {
-                  const stats = getModelStats(model);
+            {selectedModels.length === 3 && (
+              <div className="bg-game-purple/10 p-4 rounded-lg border border-game-purple/20 mb-4">
+                <h3 className="text-xl font-bold mb-2">Combined Model Stats</h3>
+                {combinedStats ? (
+                  <>
+                    <p>
+                      Player Win Rate:{" "}
+                      {round(
+                        (combinedStats.winCount /
+                          (combinedStats.winCount + combinedStats.lossCount)) *
+                          100
+                      )}
+                      %
+                    </p>
+                    <p className="text-sm opacity-70">
+                      ({combinedStats.winCount} wins / {combinedStats.lossCount}{" "}
+                      losses)
+                    </p>
+                  </>
+                ) : (
+                  <p>These models have not played together.</p>
+                )}
+              </div>
+            )}
+
+            <div
+              className={clsx(
+                "grid gap-4",
+                selectedModels.length === 3 && "h-[210px] overflow-hidden"
+              )}
+            >
+              {allModels
+                .sort((a, b) =>
+                  isModelSelected(a) && !isModelSelected(b)
+                    ? -1
+                    : !isModelSelected(a) && isModelSelected(b)
+                    ? 1
+                    : 0
+                )
+                .map((model) => {
+                  const stats = getModelStats(model, modelStats);
                   const winRate = stats
                     ? `(${round(
                         (stats.winCount / (stats.winCount + stats.lossCount)) *
                           100
                       )}% Player win rate)`
                     : "";
+
                   return (
-                    <SelectItem key={model} value={model}>
-                      <div className="flex justify-between w-full gap-2 py-2">
+                    <button
+                      key={model}
+                      onClick={() => handleModelSelect(model)}
+                      className={`p-4 rounded-lg text-left border transition-all ${
+                        isModelSelected(model)
+                          ? "border-game-purple bg-game-purple/20"
+                          : "border-game-purple/20 hover:border-game-purple/40"
+                      }`}
+                      disabled={
+                        selectedModels.length >= 3 && !isModelSelected(model)
+                      }
+                    >
+                      <div className="flex justify-between w-full gap-2">
                         <span>{model}</span>
                         <span>{stats ? winRate : ""}</span>
                       </div>
-                    </SelectItem>
+                    </button>
                   );
                 })}
-              </SelectContent>
-            </Select>
+            </div>
           </div>
+
           <Button
             onClick={startNewGame}
             className="bg-game-purple hover:bg-game-purple/80 text-white text-lg py-6 px-8"
             size="lg"
+            disabled={selectedModels.length === 0}
           >
-            Start New Game
+            Start New Game with {selectedModels.length}{" "}
+            {selectedModels.length === 1 ? "Model" : "Models"}
           </Button>
         </div>
 

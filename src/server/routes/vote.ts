@@ -65,7 +65,7 @@ const fetchVoteCompletion = async (
   return aiProvider.createChatCompletion(messages, {
     model,
     stream: false,
-    maxTokens: 1000,
+    maxTokens: 2000,
     temperature: 0.7,
     response_format: getVoteSchema(liveParticipants),
   });

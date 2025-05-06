@@ -4,6 +4,7 @@ export type Participant = {
   id: string;
   name: string;
   type: ParticipantType;
+  model: string;
   isEliminated: boolean;
   avatar: string | JSX.Element;
   isSpeaking?: boolean;

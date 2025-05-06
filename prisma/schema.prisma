@@ -23,7 +23,7 @@ model model_winrate_stats {
 
 model recorded_game {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  model_name String?  @db.String(256)
+  model_name String[]
   history    String?  @db.String(100000)
   is_win     Boolean?
 }
