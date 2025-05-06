@@ -11,7 +11,7 @@ export const getModelStats = (modelName: string, modelStats: ModelStat[]) => {
   if (!modelStats) return null;
   // Find all stats that contain this model name
   const relevantStats = modelStats.filter((stat) =>
-    stat.models.includes(modelName)
+    stat.models.some((model) => model === modelName)
   );
   if (relevantStats.length === 0) return null;
 
@@ -31,17 +31,27 @@ export const getCombinedModelStats = (
 ): ModelStat | null => {
   if (!modelStats || modelNames.length === 0) return null;
 
-  return modelStats.find((a) => a.models.every((b) => modelNames.includes(b)));
+  return modelStats.find((a) =>
+    a.models.every((b) => modelNames.some((c) => c === b))
+  );
 };
 
+let data;
 export const useModelStats = () => {
   return useQuery<ModelStat[]>({
     queryKey: ["modelStats"],
     queryFn: async () => {
+      if (data) {
+        return data;
+      }
       const response = await fetch("/api/modelStats");
-      const data = await response.json();
-      data.data.models = data.data.modelName.split(",");
-      return data.data;
+      const responseData = await response.json();
+
+      responseData.data.forEach((item: any) => {
+        item.models = item.modelName.split(",");
+      });
+      data = responseData.data;
+      return data;
     },
   });
 };
