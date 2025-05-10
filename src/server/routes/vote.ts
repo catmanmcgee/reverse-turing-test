@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { allModels } from "../../allModels";
 import { AiProvider, formatMessages } from "../utils/aiCompletions";
+import { shuffle } from "radashi";
 
 const aiProvider = new AiProvider();
 
@@ -72,6 +73,8 @@ const fetchVoteCompletion = async (
 };
 
 function getVoteSchema(liveParticipants: string[]) {
+  // Ensure that the LLMs do not find human.
+  liveParticipants = shuffle(liveParticipants);
   const suspicionProperties = liveParticipants.reduce<Record<string, any>>(
     (acc, participant) => {
       acc["suspicion_level_percent_" + participant] = {
